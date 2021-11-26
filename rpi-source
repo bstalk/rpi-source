@@ -40,7 +40,7 @@ parser.add_argument("--nomake", help="Don't run 'make modules_prepare'",
 if os.environ.get('REPO_URI'):
     repo_uri = os.environ.get('REPO_URI')
 else:
-    repo_uri = "https://github.com/Hexxeh/rpi-firmware"
+    repo_uri = "https://github.com/raspberrypi/rpi-firmware"
 parser.add_argument("--uri", help="Github repository to use. Default is '%s'" % repo_uri,
                     default=repo_uri)
 parser.add_argument("--delete", help="Delete downloaded archive",
