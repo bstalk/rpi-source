@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 #
 # Copyright (C) 2014 Noralf Tronnes
@@ -11,9 +11,7 @@ import os
 import struct
 import sys
 import argparse
-import urllib
-import urllib2
-import urlparse
+import urllib.request, urllib.parse, urllib.error
 import gzip
 import subprocess
 import re
@@ -109,25 +107,25 @@ def writef(f, str, mode='w'):
 def download(url):
     debug("download: %s" % url)
     try:
-        res = urllib2.urlopen(url).read()
-    except urllib2.HTTPError, e:
+        res = urllib.request.urlopen(url).read()
+    except urllib.error.HTTPError as e:
         fail(
             "Couldn't download %s, HTTPError: %s\n\n%s"
             % (url, e.code, json.dumps(json.load(e), indent=4))
         )
-    except urllib2.URLError, e:
+    except urllib.error.URLError as e:
         fail("Couldn't download %s, URLError: %s" % (url, e.args))
     return res
 
 def download_to(url, file):
     debug("download_to: %s -> %s" % (url, file))
     if not args.dry_run:
-        urllib.urlretrieve (url, file)
+        urllib.request.urlretrieve (url, file)
 
 def update_get_head():
     if update_get_head.ref:
         return update_get_head.ref
-    repo_short = urlparse.urlparse(script_repo).path
+    repo_short = urllib.parse.urlparse(script_repo).path
     repo_api = "https://api.github.com/repos%s/git/refs/heads/master" % repo_short
     res = download(repo_api)
     try:
@@ -176,7 +174,7 @@ def do_update():
 
 def check_diskspace(dir):
     df = sh_out("df %s" % dir)
-    nums = re.findall(r'(?<=\s)\d+(?=\s+)', df)
+    nums = re.findall(rb'(?<=\s)\d+(?=\s+)', df)
     if not nums or len(nums) != 3:
         info("Warning: unable to check available diskspace")
     if (int(nums[2]) / 1024) < DISK_USAGE_MB:
@@ -215,7 +213,7 @@ def proc_config_gz():
         return ''
 
     with gzip.open('/proc/config.gz', 'rb') as f:
-        return f.read()
+        return f.read().decode()
 
 
 def processor_type_suffix():
@@ -258,17 +256,17 @@ def debian_method(fn):
         debian_changelog = f.read()
 
     # Find first firmware entry in log (latest entries are at the top)
-    fw_rev = re.search(r'firmware as of ([0-9a-fA-F]+)', debian_changelog)
+    fw_rev = re.search(rb'firmware as of ([0-9a-fA-F]+)', debian_changelog)
     if not fw_rev:
         fail("Could not identify latest firmware revision")
 
-    fw_rev = fw_rev.group(1)
+    fw_rev = fw_rev.group(1).decode()
 
     info("Latest firmware revision: %s" % fw_rev)
 
     repo_raw = "https://raw.githubusercontent.com/raspberrypi/firmware"
 
-    kernel.git_hash = download("%s/%s/extra/git_hash" % (repo_raw, fw_rev)).strip()
+    kernel.git_hash = download("%s/%s/extra/git_hash" % (repo_raw, fw_rev)).strip().decode()
     kernel.symvers = "%s/%s/extra/Module%s.symvers" % (repo_raw, fw_rev, processor_type_suffix())
 
     if not args.default_config:
