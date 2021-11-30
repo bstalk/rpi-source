@@ -217,6 +217,11 @@ def proc_config_gz():
 
 
 def processor_type_suffix():
+    # 64 bit
+    if platform.machine() == 'aarch64':
+        return '8'
+
+    # original code
     if processor_type == 0:
         return ''
     elif processor_type == 1 or processor_type == 2:
