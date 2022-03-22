@@ -126,7 +126,8 @@ def update_get_head():
     if update_get_head.ref:
         return update_get_head.ref
     repo_short = urllib.parse.urlparse(script_repo).path
-    repo_api = "https://api.github.com/repos%s/git/refs/heads/master" % repo_short
+#    repo_api = "https://api.github.com/repos%s/git/refs/heads/master" % repo_short
+    repo_api = "https://api.github.com/repos%s/git/refs/heads/feature/experimental_python3" % repo_short
     res = download(repo_api)
     try:
         j = json.loads(res)
@@ -166,7 +167,8 @@ def do_update():
     # MOD: replace current script; do not assume script is located at /usr/bin/rpi-source; also keep ownership and permissions
     script_name = argv[0]
     info("Updating rpi-source")
-    sh("sudo wget %s https://raw.githubusercontent.com/bstalk/rpi-source/master/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
+#    sh("sudo wget %s https://raw.githubusercontent.com/bstalk/rpi-source/master/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
+    sh("sudo wget %s https://raw.githubusercontent.com/bstalk/rpi-source/feature/experimental_python3/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
     update_tag()
     info("Restarting rpi-source")
     argv.insert(0, sys.executable)
