@@ -26,7 +26,7 @@ PROCESSOR_TYPES = range(0, 4)
 PROCESSOR_TYPES_NAMES = ['BCM2835', 'BCM2836', 'BCM2837', 'BCM2711']
 
 help = "https://github.com/RPi-Distro/rpi-source/blob/master/README.md"
-script_repo = "https://github.com/RPi-Distro/rpi-source"
+script_repo = "https://github.com/bstalk/rpi-source"
 
 update_tag_file = os.path.join(os.environ.get('HOME'), '.rpi-source')
 argv = sys.argv[:]
@@ -166,7 +166,7 @@ def do_update():
     # MOD: replace current script; do not assume script is located at /usr/bin/rpi-source; also keep ownership and permissions
     script_name = argv[0]
     info("Updating rpi-source")
-    sh("sudo wget %s https://raw.githubusercontent.com/RPi-Distro/rpi-source/master/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
+    sh("sudo wget %s https://raw.githubusercontent.com/bstalk/rpi-source/master/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
     update_tag()
     info("Restarting rpi-source")
     argv.insert(0, sys.executable)
@@ -311,6 +311,10 @@ def get_processor_type():
     # The old boards don't have the detailed revision, so to keep things simple:
     if platform.machine() == "armv6l":
         return 0
+
+    # platform.machine returns "aarch64" if Raspberry pi OS 64 bit
+    if platform.machine() == "aarch64":
+        return 3
 
     revision = get_revision()
     if not (revision & 0x800000):
