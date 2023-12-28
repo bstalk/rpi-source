@@ -165,6 +165,8 @@ def update_tag():
 
 def do_update():
     # MOD: replace current script; do not assume script is located at /usr/bin/rpi-source; also keep ownership and permissions
+    info("do_update is now under_construction")
+    exit(1)
     script_name = argv[0]
     info("Updating rpi-source")
     sh("sudo wget %s https://raw.githubusercontent.com/RPi-Distro/rpi-source/master/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
