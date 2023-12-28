@@ -23,7 +23,7 @@ import errno
 # used by archive file and unpacked archive
 DISK_USAGE_MB = 900
 
-PROCESSOR_TYPES = range(0, 5)
+PROCESSOR_TYPES = list(range(0, 5))
 PROCESSOR_TYPES_NAMES = ['BCM2835', 'BCM2836', 'BCM2837', 'BCM2711', 'BCM2712']
 
 help = "https://github.com/RPi-Distro/rpi-source/blob/master/README.md"
