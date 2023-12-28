@@ -11,7 +11,8 @@ import os
 import struct
 import sys
 import argparse
-import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
+import urllib.parse
 import gzip
 import subprocess
 import re
@@ -22,11 +23,11 @@ import errno
 # used by archive file and unpacked archive
 DISK_USAGE_MB = 900
 
-PROCESSOR_TYPES = range(0, 4)
-PROCESSOR_TYPES_NAMES = ['BCM2835', 'BCM2836', 'BCM2837', 'BCM2711']
+PROCESSOR_TYPES = range(0, 5)
+PROCESSOR_TYPES_NAMES = ['BCM2835', 'BCM2836', 'BCM2837', 'BCM2711', 'BCM2712']
 
 help = "https://github.com/RPi-Distro/rpi-source/blob/master/README.md"
-script_repo = "https://github.com/bstalk/rpi-source"
+script_repo = "https://github.com/RPi-Distro/rpi-source"
 
 update_tag_file = os.path.join(os.environ.get('HOME'), '.rpi-source')
 argv = sys.argv[:]
@@ -96,7 +97,7 @@ def sh_out(cmd):
     errcode = process.returncode
     if errcode:
         return None
-    return out
+    return out.decode('utf-8')
 
 def writef(f, str, mode='w'):
     debug("writef(%s)" % f)
@@ -107,7 +108,7 @@ def writef(f, str, mode='w'):
 def download(url):
     debug("download: %s" % url)
     try:
-        res = urllib.request.urlopen(url).read()
+        res = urllib.request.urlopen(url).read().decode('utf-8')
     except urllib.error.HTTPError as e:
         fail(
             "Couldn't download %s, HTTPError: %s\n\n%s"
@@ -126,8 +127,7 @@ def update_get_head():
     if update_get_head.ref:
         return update_get_head.ref
     repo_short = urllib.parse.urlparse(script_repo).path
-#    repo_api = "https://api.github.com/repos%s/git/refs/heads/master" % repo_short
-    repo_api = "https://api.github.com/repos%s/git/refs/heads/feature/experimental_python3" % repo_short
+    repo_api = "https://api.github.com/repos%s/git/refs/heads/master" % repo_short
     res = download(repo_api)
     try:
         j = json.loads(res)
@@ -167,8 +167,7 @@ def do_update():
     # MOD: replace current script; do not assume script is located at /usr/bin/rpi-source; also keep ownership and permissions
     script_name = argv[0]
     info("Updating rpi-source")
-#    sh("sudo wget %s https://raw.githubusercontent.com/bstalk/rpi-source/master/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
-    sh("sudo wget %s https://raw.githubusercontent.com/bstalk/rpi-source/feature/experimental_python3/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
+    sh("sudo wget %s https://raw.githubusercontent.com/RPi-Distro/rpi-source/master/rpi-source -O %s" % ("-q" if args.quiet else "", script_name))
     update_tag()
     info("Restarting rpi-source")
     argv.insert(0, sys.executable)
@@ -176,7 +175,7 @@ def do_update():
 
 def check_diskspace(dir):
     df = sh_out("df %s" % dir)
-    nums = re.findall(rb'(?<=\s)\d+(?=\s+)', df)
+    nums = re.findall(r'(?<=\s)\d+(?=\s+)', df)
     if not nums or len(nums) != 3:
         info("Warning: unable to check available diskspace")
     if (int(nums[2]) / 1024) < DISK_USAGE_MB:
@@ -190,7 +189,7 @@ def check_gcc():
     errcode = process.returncode
     if errcode:
         debug("gcc version check failed: '%s' returned %d" %(cmd, errcode))
-    gcc_ver = out.strip()
+    gcc_ver = out.strip().decode('utf-8')
 
     with open('/proc/version', 'r') as f:
         proc_version = f.read()
@@ -215,7 +214,7 @@ def proc_config_gz():
         return ''
 
     with gzip.open('/proc/config.gz', 'rb') as f:
-        return f.read().decode()
+        return f.read().decode('utf-8')
 
 
 def processor_type_suffix():
@@ -239,7 +238,7 @@ def rpi_update_method(uri):
 
     info("rpi-update: %s" % uri)
 
-    with open("/boot/.firmware_revision") as f:
+    with open(firmware_revision_path) as f:
         fw_rev = f.read().strip()
     info("Firmware revision: %s" % fw_rev)
 
@@ -263,17 +262,17 @@ def debian_method(fn):
         debian_changelog = f.read()
 
     # Find first firmware entry in log (latest entries are at the top)
-    fw_rev = re.search(rb'firmware as of ([0-9a-fA-F]+)', debian_changelog)
+    fw_rev = re.search(r'firmware as of ([0-9a-fA-F]+)', debian_changelog.decode('utf-8'))
     if not fw_rev:
         fail("Could not identify latest firmware revision")
 
-    fw_rev = fw_rev.group(1).decode()
+    fw_rev = fw_rev.group(1)
 
     info("Latest firmware revision: %s" % fw_rev)
 
     repo_raw = "https://raw.githubusercontent.com/raspberrypi/firmware"
 
-    kernel.git_hash = download("%s/%s/extra/git_hash" % (repo_raw, fw_rev)).strip().decode()
+    kernel.git_hash = download("%s/%s/extra/git_hash" % (repo_raw, fw_rev)).strip()
     kernel.symvers = "%s/%s/extra/Module%s.symvers" % (repo_raw, fw_rev, processor_type_suffix())
 
     if not args.default_config:
@@ -341,6 +340,12 @@ info("SoC: %s" % PROCESSOR_TYPES_NAMES[processor_type])
 # FIX usage of -d DEST with relative pathnames
 args.dest = os.path.abspath(args.dest)
 
+if os.path.exists('/boot/firmware/.firmware_revision'):
+    firmware_revision_path = '/boot/firmware/.firmware_revision'
+else:
+    firmware_revision_path = '/boot/.firmware_revision'
+
+
 if args.tag_update:
     update_tag()
     exit(0)
@@ -357,7 +362,7 @@ if not args.skip_gcc:
 check_bc()
 
 debianlog = "/usr/share/doc/raspberrypi-bootloader/changelog.Debian.gz"
-if os.path.exists("/boot/.firmware_revision"):
+if os.path.exists(firmware_revision_path):
     kernel = rpi_update_method(args.uri)
 elif os.path.exists(debianlog):
     kernel = debian_method(debianlog)
